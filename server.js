@@ -10,8 +10,16 @@ app.get("/", (req, res) => {
 });
 
 io.on("connection", (socket) => {
-  console.log("A user connected:", socket.id);
-  socket.on("disconnect", () => console.log("User disconnected:", socket.id));
+  console.log("User connected:", socket.id);
+
+  socket.on("draw", (data) => {
+    // Broadcast draw data to other clients
+    socket.broadcast.emit("draw", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
 });
 
 const PORT = 3000;
