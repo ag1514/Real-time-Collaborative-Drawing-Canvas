@@ -13,9 +13,12 @@ io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   socket.on("draw", (data) => {
-    // Broadcast draw data to other clients
     socket.broadcast.emit("draw", data);
   });
+
+  socket.on("clear", () => {
+    socket.broadcast.emit("clear");
+  });   
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
