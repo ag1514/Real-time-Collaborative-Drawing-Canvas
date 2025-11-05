@@ -21,7 +21,7 @@ header {
 header h1 {
   font-size: 1.8rem;
   font-weight: 600;
-  color: #fff;
+  color: #28282A;
   text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -30,7 +30,7 @@ header h1 {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.15);
+  background: #E3DBDC;
   backdrop-filter: blur(8px);
   padding: 12px 18px;
   border-radius: 12px;
@@ -75,6 +75,6 @@ canvas {
 footer {
   margin-top: 25px;
   font-size: 0.9rem;
-  color: #fff;
+  color: #28282A;
   text-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
 }

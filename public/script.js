@@ -2,84 +2,95 @@ const socket = io();
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
+const colorBtn = document.getElementById("colorBtn");
+const eraserBtn = document.getElementById("eraserBtn");
+const sizeRange = document.getElementById("sizeRange");
+const clearBtn = document.getElementById("clearBtn");
+
 canvas.width = 800;
 canvas.height = 500;
 
-const colorBtn = document.getElementById("colorBtn");
-const eraserBtn = document.getElementById("eraserBtn");
-const clearBtn = document.getElementById("clearBtn");
-const sizeRange = document.getElementById("sizeRange");
-const sizeLabel = document.querySelector('label[for="sizeRange"]');
-
-const colorPicker = document.createElement("input");
-colorPicker.type = "color";
-colorPicker.style.display = "none";
-document.body.appendChild(colorPicker);
-
 let drawing = false;
 let color = "#000";
-let isEraser = false;
-let brushSize = sizeRange.value;
+let lineWidth = 2;
+let erasing = false;
 
-
-colorBtn.addEventListener("click", () => colorPicker.click());
-colorPicker.addEventListener("input", (e) => {
-  color = e.target.value;
-  isEraser = false;
-  eraserBtn.classList.remove("active");
-  sizeLabel.textContent = "🖌️ Brush Size:";
+colorBtn.addEventListener("click", () => {
+  const newColor = prompt("Enter color (e.g., red, #00ff00):", color);
+  if (newColor) {
+    color = newColor;
+    erasing = false;
+  }
 });
 
 eraserBtn.addEventListener("click", () => {
-  isEraser = !isEraser;
-  eraserBtn.classList.toggle("active");
-  sizeLabel.textContent = isEraser ? "🩹 Eraser Size:" : "🖌️ Brush Size:";
+  erasing = true;
 });
 
 sizeRange.addEventListener("input", (e) => {
-  brushSize = e.target.value;
+  lineWidth = e.target.value;
+});
+
+
+canvas.addEventListener("mousedown", (e) => {
+  drawing = true;
+  const { offsetX, offsetY } = e;
+  socket.emit("draw", { type: "start", x: offsetX, y: offsetY });
+});
+
+canvas.addEventListener("mouseup", () => {
+  drawing = false;
+  socket.emit("draw", { type: "stop" });
+  ctx.beginPath();
+});
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!drawing) return;
+  const { offsetX, offsetY } = e;
+
+  const strokeColor = erasing ? "#fff" : color;
+
+  ctx.lineWidth = lineWidth;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = strokeColor;
+  ctx.lineTo(offsetX, offsetY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(offsetX, offsetY);
+
+  socket.emit("draw", {
+    type: "draw",
+    x: offsetX,
+    y: offsetY,
+    color: strokeColor,
+    lineWidth,
+  });
+});
+
+socket.on("draw", (data) => {
+  switch (data.type) {
+    case "start":
+      ctx.beginPath();
+      ctx.moveTo(data.x, data.y);
+      break;
+    case "draw":
+      ctx.lineWidth = data.lineWidth;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = data.color;
+      ctx.lineTo(data.x, data.y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(data.x, data.y);
+      break;
+    case "stop":
+      ctx.beginPath();
+      break;
+  }
 });
 
 clearBtn.addEventListener("click", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   socket.emit("clear");
-});
-
-canvas.addEventListener("mousedown", () => drawing = true);
-canvas.addEventListener("mouseup", () => {
-  drawing = false;
-  ctx.beginPath();
-});
-canvas.addEventListener("mousemove", draw);
-
-
-function draw(e) {
-  if (!drawing) return;
-  const x = e.offsetX;
-  const y = e.offsetY;
-
-  ctx.lineWidth = brushSize;
-  ctx.lineCap = "round";
-  ctx.strokeStyle = isEraser ? "#fff" : color;
-
-  ctx.lineTo(x, y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-
-  socket.emit("draw", { x, y, color: ctx.strokeStyle, brushSize });
-}
-
-
-socket.on("draw", (data) => {
-  ctx.lineWidth = data.brushSize;
-  ctx.strokeStyle = data.color;
-  ctx.lineCap = "round";
-
-  ctx.lineTo(data.x, data.y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(data.x, data.y);
 });
 
 socket.on("clear", () => {
